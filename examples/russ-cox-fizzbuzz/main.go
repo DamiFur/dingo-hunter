@@ -37,4 +37,3 @@ func filter(c <-chan string, n int, label string) <-chan string {
 	}()
 	return out
 }
-

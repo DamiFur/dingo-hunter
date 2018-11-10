@@ -6,6 +6,9 @@ import (
 	"go/token"
 	"go/types"
 
+	"strconv"
+	"strings"
+
 	"github.com/nickng/migo"
 	"golang.org/x/tools/go/ssa"
 )
@@ -42,6 +45,7 @@ func visitFunc(fn *ssa.Function, infer *TypeInfer, f *Function) {
 func visitBasicBlock(blk *ssa.BasicBlock, infer *TypeInfer, f *Function, bPrev *Block, l *Loop) {
 	loopStateTransition(blk, infer, f, &l)
 	if l.Bound == Static && l.HasNext() {
+		fmt.Println("This has next: ", l)
 		infer.Logger.Printf(f.Sprintf(BlockSymbol+"%s %d (loop %s=%d)", fmtBlock("block"), blk.Index, l.CondVar.Name(), l.Index))
 		// Loop and can continue, so don't mark as visited yet
 	} else {
@@ -49,6 +53,10 @@ func visitBasicBlock(blk *ssa.BasicBlock, infer *TypeInfer, f *Function, bPrev *
 			infer.Logger.Printf(f.Sprintf(BlockSymbol+"%s %d (visited)", fmtBlock("block"), blk.Index))
 			f.Visited[blk]++
 			for i := 0; i < len(f.FuncDef.Params); i++ {
+				fmt.Println("Parametros de la funcion")
+				fmt.Println(f.FuncDef.Params[i])
+				fmt.Println("nombre del parametro")
+				fmt.Println(f.FuncDef.Params[i].Caller.Name())
 				for k, ea := range f.extraargs {
 					if phi, ok := ea.(*ssa.Phi); ok {
 						if bPrev.Index < len(phi.Edges) {
@@ -72,9 +80,15 @@ func visitBasicBlock(blk *ssa.BasicBlock, infer *TypeInfer, f *Function, bPrev *
 	}
 	infer.Logger.Printf(f.Sprintf(BlockSymbol+"%s %d; %s", fmtBlock("block"), blk.Index, fmtLoopHL(blk.Comment)))
 	f.Visited[blk] = 0
+	ctx := &Context{f, bPrev, l}
 	for _, instr := range blk.Instrs {
-		visitInstr(instr, infer, &Context{f, bPrev, l})
+		visitInstr(instr, infer, ctx)
 	}
+	//fmt.Println("Esto es lo que queda después de un bloque:")
+	//for key, _ := range ctx.F.locals {
+	//	fmt.Println(ctx.F.locals[key].String())
+	//}
+
 }
 
 func visitInstr(instr ssa.Instruction, infer *TypeInfer, ctx *Context) {
@@ -108,6 +122,8 @@ func visitInstr(instr ssa.Instruction, infer *TypeInfer, ctx *Context) {
 	case *ssa.IndexAddr:
 		visitIndexAddr(instr, infer, ctx)
 	case *ssa.Jump:
+		fmt.Println("POS DEL JUUUUUUUMPPPPPPP")
+		fmt.Println(instr.Parent())
 		visitJump(instr, infer, ctx)
 	case *ssa.Lookup:
 		visitLookup(instr, infer, ctx)
@@ -159,7 +175,7 @@ func visitAlloc(instr *ssa.Alloc, infer *TypeInfer, ctx *Context) {
 	allocType := instr.Type().(*types.Pointer).Elem()
 	switch t := allocType.Underlying().(type) {
 	case *types.Array: // Static size array
-		ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index}
+		ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index, 0}
 		if instr.Heap {
 			ctx.F.Prog.arrays[ctx.F.locals[instr]] = make(Elems, t.Len())
 			infer.Logger.Print(ctx.F.Sprintf(NewSymbol+"%s = alloc (array@heap) of type %s (%d elems)", ctx.F.locals[instr], instr.Type(), t.Len()))
@@ -168,7 +184,7 @@ func visitAlloc(instr *ssa.Alloc, infer *TypeInfer, ctx *Context) {
 			infer.Logger.Print(ctx.F.Sprintf(NewSymbol+"%s = alloc (array@local) of type %s (%d elems)", ctx.F.locals[instr], instr.Type(), t.Len()))
 		}
 	case *types.Struct:
-		ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index}
+		ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index, 0}
 		if instr.Heap {
 			ctx.F.Prog.structs[ctx.F.locals[instr]] = make(Fields, t.NumFields())
 			infer.Logger.Print(ctx.F.Sprintf(NewSymbol+"%s = alloc (struct@heap) of type %s (%d fields)", ctx.F.locals[instr], instr.Type(), t.NumFields()))
@@ -179,17 +195,17 @@ func visitAlloc(instr *ssa.Alloc, infer *TypeInfer, ctx *Context) {
 	case *types.Pointer:
 		switch pt := t.Elem().Underlying().(type) {
 		case *types.Array:
-			ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index}
+			ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index, 0}
 			if instr.Heap {
 				ctx.F.Prog.arrays[ctx.F.locals[instr]] = make(Elems, pt.Len())
 				infer.Logger.Print(ctx.F.Sprintf(NewSymbol+"%s = alloc/indirect (array@heap) of type %s (%d elems)", ctx.F.locals[instr], instr.Type(), pt.Len()))
 			} else {
-				ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index}
+				ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index, 0}
 				ctx.F.arrays[ctx.F.locals[instr]] = make(Elems, pt.Len())
 				infer.Logger.Print(ctx.F.Sprintf(NewSymbol+"%s = alloc/indirect (array@local) of type %s (%d elems)", ctx.F.locals[instr], instr.Type(), pt.Len()))
 			}
 		case *types.Struct:
-			ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index}
+			ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index, 0}
 			if instr.Heap {
 				ctx.F.Prog.structs[ctx.F.locals[instr]] = make(Fields, pt.NumFields())
 				infer.Logger.Print(ctx.F.Sprintf(NewSymbol+"%s = alloc/indirect (struct@heap) of type %s (%d fields)", ctx.F.locals[instr], instr.Type(), pt.NumFields()))
@@ -198,11 +214,11 @@ func visitAlloc(instr *ssa.Alloc, infer *TypeInfer, ctx *Context) {
 				infer.Logger.Print(ctx.F.Sprintf(NewSymbol+"%s = alloc/indirect (struct@local) of type %s (%d fields)", ctx.F.locals[instr], instr.Type(), pt.NumFields()))
 			}
 		default:
-			ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index}
+			ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index, 0}
 			infer.Logger.Print(ctx.F.Sprintf(NewSymbol+"%s = alloc/indirect of type %s", ctx.F.locals[instr], instr.Type().Underlying()))
 		}
 	default:
-		ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index}
+		ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index, 0}
 		infer.Logger.Print(ctx.F.Sprintf(NewSymbol+"%s = alloc of type %s", ctx.F.locals[instr], instr.Type().Underlying()))
 	}
 }
@@ -259,7 +275,7 @@ func visitBinOp(instr *ssa.BinOp, infer *TypeInfer, ctx *Context) {
 			}
 		}
 	}
-	ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index}
+	ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index, 0}
 	visitSkip(instr, infer, ctx)
 }
 
@@ -344,7 +360,7 @@ func visitDeref(instr *ssa.UnOp, infer *TypeInfer, ctx *Context) {
 	if basic, ok := derefType(ptr.Type()).Underlying().(*types.Basic); ok && basic.Kind() == types.Byte {
 		infer.Logger.Print(ctx.F.Sprintf(SubSymbol+"deref: %+v is a byte", ptr))
 		// Create new byte instance here, bytes do no need explicit allocation.
-		ctx.F.locals[ptr] = &Value{ptr, ctx.F.InstanceID(), ctx.L.Index}
+		ctx.F.locals[ptr] = &Value{ptr, ctx.F.InstanceID(), ctx.L.Index, 0}
 	}
 	// Locactx.L.
 	inst, ok := ctx.F.locals[ptr]
@@ -366,7 +382,7 @@ func visitExtract(instr *ssa.Extract, infer *TypeInfer, ctx *Context) {
 			return
 		}
 		if inst := ctx.F.tuples[tupleInst][instr.Index]; inst == nil {
-			ctx.F.tuples[tupleInst][instr.Index] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index}
+			ctx.F.tuples[tupleInst][instr.Index] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index, 0}
 		}
 		ctx.F.locals[instr] = ctx.F.tuples[tupleInst][instr.Index]
 		initNestedRefVar(infer, ctx, ctx.F.locals[instr], false)
@@ -419,7 +435,7 @@ func visitField(instr *ssa.Field, infer *TypeInfer, ctx *Context) {
 		if fields[index] != nil {
 			infer.Logger.Print(ctx.F.Sprintf(SubSymbol+"accessed as %s", fields[index]))
 		} else {
-			fields[index] = &Value{field, ctx.F.InstanceID(), ctx.L.Index}
+			fields[index] = &Value{field, ctx.F.InstanceID(), ctx.L.Index, 0}
 			infer.Logger.Print(ctx.F.Sprintf(SubSymbol+"field uninitialised, set to %s", field.Name()))
 		}
 		initNestedRefVar(infer, ctx, ctx.F.locals[field], false)
@@ -470,7 +486,7 @@ func visitFieldAddr(instr *ssa.FieldAddr, infer *TypeInfer, ctx *Context) {
 		if fields[index] != nil {
 			infer.Logger.Print(ctx.F.Sprintf(SubSymbol+"accessed as %s", fields[index]))
 		} else {
-			fields[index] = &Value{field, ctx.F.InstanceID(), ctx.L.Index}
+			fields[index] = &Value{field, ctx.F.InstanceID(), ctx.L.Index, 0}
 			infer.Logger.Print(ctx.F.Sprintf(SubSymbol+"field uninitialised, set to %s", field.Name()))
 		}
 		initNestedRefVar(infer, ctx, fields[index], false)
@@ -482,6 +498,7 @@ func visitFieldAddr(instr *ssa.FieldAddr, infer *TypeInfer, ctx *Context) {
 
 func visitGo(instr *ssa.Go, infer *TypeInfer, ctx *Context) {
 	infer.Logger.Printf(ctx.F.Sprintf(SpawnSymbol+"%s %s", fmtSpawn("spawn"), instr))
+	//fmt.Println("Estoy en visit Go: ", strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1])
 	ctx.F.Go(instr, infer)
 }
 
@@ -527,7 +544,7 @@ func visitIf(instr *ssa.If, infer *TypeInfer, ctx *Context) {
 						if instr.Block().Succs[1].Comment == "select.done" {
 							// Looks like it's empty
 							infer.Logger.Printf(SplitSymbol+"Empty default branch (%d ⇾ %d)", instr.Block().Index, instr.Block().Succs[1].Index)
-							selDefault := &migo.CallStatement{Name: fmt.Sprintf("%s#%d", ctx.F.Fn.String(), instr.Block().Succs[1].Index)}
+							selDefault := &migo.CallStatement{Name: fmt.Sprintf("%s#%d", ctx.F.Fn.String(), instr.Block().Succs[1].Index), LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]}
 							for i := 0; i < len(ctx.F.FuncDef.Params); i++ {
 								for k, ea := range ctx.F.extraargs {
 									if phi, ok := ea.(*ssa.Phi); ok {
@@ -612,7 +629,7 @@ func visitIf(instr *ssa.If, infer *TypeInfer, ctx *Context) {
 	if ctx.L.State == Body && ctx.L.LoopBlock == ctx.B.Index {
 		// Infinite loop.
 		infer.Logger.Printf(ctx.F.Sprintf(LoopSymbol + " infinite loop"))
-		stmt := &migo.CallStatement{Name: fmt.Sprintf("%s#%d", ctx.F.Fn.String(), ctx.B.Index)}
+		stmt := &migo.CallStatement{Name: fmt.Sprintf("%s#%d", ctx.F.Fn.String(), ctx.B.Index), LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]}
 		for _, p := range ctx.F.FuncDef.Params {
 			stmt.AddParams(&migo.Parameter{Caller: p.Callee, Callee: p.Callee})
 		}
@@ -662,7 +679,7 @@ func visitIndex(instr *ssa.Index, infer *TypeInfer, ctx *Context) {
 		if elems[index] != nil {
 			infer.Logger.Print(ctx.F.Sprintf(SubSymbol+"accessed as %s", elems[index]))
 		} else {
-			elems[index] = &Value{elem, ctx.F.InstanceID(), ctx.L.Index}
+			elems[index] = &Value{elem, ctx.F.InstanceID(), ctx.L.Index, 0}
 			infer.Logger.Printf(ctx.F.Sprintf(SubSymbol+"elem uninitialised, set to %s", elem.Name()))
 		}
 		initNestedRefVar(infer, ctx, elems[index], false)
@@ -712,7 +729,7 @@ func visitIndexAddr(instr *ssa.IndexAddr, infer *TypeInfer, ctx *Context) {
 		if elems[index] != nil {
 			infer.Logger.Print(ctx.F.Sprintf(SubSymbol+"accessed as %s", elems[index]))
 		} else {
-			elems[index] = &Value{elem, ctx.F.InstanceID(), ctx.L.Index}
+			elems[index] = &Value{elem, ctx.F.InstanceID(), ctx.L.Index, 0}
 			infer.Logger.Printf(ctx.F.Sprintf(SubSymbol+"elem uninitialised, set to %s", elem.Name()))
 		}
 		initNestedRefVar(infer, ctx, elems[index], false)
@@ -763,7 +780,7 @@ func visitIndexAddr(instr *ssa.IndexAddr, infer *TypeInfer, ctx *Context) {
 		if elems[index] != nil {
 			infer.Logger.Print(ctx.F.Sprintf(SubSymbol+"accessed as %s", elems[index]))
 		} else {
-			elems[index] = &Value{elem, ctx.F.InstanceID(), ctx.L.Index}
+			elems[index] = &Value{elem, ctx.F.InstanceID(), ctx.L.Index, 0}
 			infer.Logger.Printf(ctx.F.Sprintf(SubSymbol+"elem uninitialised, set to %s", elem.Name()))
 		}
 		initNestedRefVar(infer, ctx, elems[index], false)
@@ -789,7 +806,7 @@ func visitJump(jump *ssa.Jump, infer *TypeInfer, ctx *Context) {
 		//if ctx.L.Bound == Static && ctx.L.HasNext() {
 		//stmt = &migo.CallStatement{Name: fmt.Sprintf("%s#%d_loop%d", ctx.F.Fn.String(), next.Index, ctx.L.Index), Params: []*migo.Parameter{}}
 		//} else {
-		stmt = &migo.CallStatement{Name: fmt.Sprintf("%s#%d", ctx.F.Fn.String(), next.Index)}
+		stmt = &migo.CallStatement{Name: fmt.Sprintf("%s#%d", ctx.F.Fn.String(), next.Index), LineNum: strconv.Itoa(int(jump.Pos()))}
 		for i := 0; i < len(ctx.F.FuncDef.Params); i++ {
 			for k, ea := range ctx.F.extraargs {
 				if phi, ok := ea.(*ssa.Phi); ok {
@@ -861,11 +878,11 @@ func visitLookup(instr *ssa.Lookup, infer *TypeInfer, ctx *Context) {
 		if c, ok := instr.Index.(*ssa.Const); ok {
 			idx = &Const{c}
 		} else {
-			idx = &Value{instr.Index, ctx.F.InstanceID(), ctx.L.Index}
+			idx = &Value{instr.Index, ctx.F.InstanceID(), ctx.L.Index, 0}
 		}
 		ctx.F.locals[instr.Index] = idx
 	}
-	ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index}
+	ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index, 0}
 	initNestedRefVar(infer, ctx, ctx.F.locals[instr], false)
 	if instr.CommaOk {
 		ctx.F.commaok[ctx.F.locals[instr]] = &CommaOk{Instr: instr, Result: ctx.F.locals[instr]}
@@ -875,7 +892,12 @@ func visitLookup(instr *ssa.Lookup, infer *TypeInfer, ctx *Context) {
 }
 
 func visitMakeChan(instr *ssa.MakeChan, infer *TypeInfer, ctx *Context) {
-	newch := &Value{instr, ctx.F.InstanceID(), ctx.L.Index}
+	fmt.Println("Estoy en visit Chan: ", strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1])
+	line, err := strconv.Atoi(strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1])
+	if err != nil {
+		fmt.Println("There was an error parsing line number")
+	}
+	newch := &Value{instr, ctx.F.InstanceID(), ctx.L.Index, line}
 	ctx.F.locals[instr] = newch
 	chType, ok := instr.Type().(*types.Chan)
 	if !ok {
@@ -891,7 +913,7 @@ func visitMakeChan(instr *ssa.MakeChan, infer *TypeInfer, ctx *Context) {
 		chType.Elem(),
 		bufSz.Int64(),
 		fmtPos(infer.SSA.FSet.Position(instr.Pos()).String())))
-	ctx.F.FuncDef.AddStmts(&migo.NewChanStatement{Name: instr, Chan: newch.String(), Size: bufSz.Int64()})
+	ctx.F.FuncDef.AddStmts(&migo.NewChanStatement{Name: instr, Chan: newch.String(), Size: bufSz.Int64(), LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]})
 	// Make sure it is not a duplicated extraargs
 	var found bool
 	for _, ea := range ctx.F.extraargs {
@@ -909,7 +931,7 @@ func visitMakeChan(instr *ssa.MakeChan, infer *TypeInfer, ctx *Context) {
 }
 
 func visitMakeClosure(instr *ssa.MakeClosure, infer *TypeInfer, ctx *Context) {
-	ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index}
+	ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index, 0}
 	ctx.F.Prog.closures[ctx.F.locals[instr]] = make(Captures, len(instr.Bindings))
 	for i, binding := range instr.Bindings {
 		ctx.F.Prog.closures[ctx.F.locals[instr]][i] = ctx.F.locals[binding]
@@ -932,13 +954,13 @@ func visitMakeInterface(instr *ssa.MakeInterface, infer *TypeInfer, ctx *Context
 }
 
 func visitMakeMap(instr *ssa.MakeMap, infer *TypeInfer, ctx *Context) {
-	ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index}
+	ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index, 0}
 	ctx.F.maps[ctx.F.locals[instr]] = make(map[Instance]Instance)
 	infer.Logger.Print(ctx.F.Sprintf(SkipSymbol+"%s = make-map", ctx.F.locals[instr]))
 }
 
 func visitMakeSlice(instr *ssa.MakeSlice, infer *TypeInfer, ctx *Context) {
-	ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index}
+	ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index, 0}
 	ctx.F.arrays[ctx.F.locals[instr]] = make(Elems)
 	infer.Logger.Print(ctx.F.Sprintf(SkipSymbol+"%s = make-slice", ctx.F.locals[instr]))
 }
@@ -957,7 +979,7 @@ func visitMapUpdate(instr *ssa.MapUpdate, infer *TypeInfer, ctx *Context) {
 	}
 	k, ok := ctx.F.locals[instr.Key]
 	if !ok {
-		k = &Value{instr.Key, ctx.F.InstanceID(), ctx.L.Index}
+		k = &Value{instr.Key, ctx.F.InstanceID(), ctx.L.Index, 0}
 		ctx.F.locals[instr.Key] = k
 	}
 	v, ok := ctx.F.locals[instr.Value]
@@ -965,7 +987,7 @@ func visitMapUpdate(instr *ssa.MapUpdate, infer *TypeInfer, ctx *Context) {
 		if c, ok := instr.Value.(*ssa.Const); ok {
 			v = &Const{c}
 		} else {
-			v = &Value{instr.Value, ctx.F.InstanceID(), ctx.L.Index}
+			v = &Value{instr.Value, ctx.F.InstanceID(), ctx.L.Index, 0}
 		}
 		ctx.F.locals[instr.Value] = v
 	}
@@ -974,7 +996,7 @@ func visitMapUpdate(instr *ssa.MapUpdate, infer *TypeInfer, ctx *Context) {
 }
 
 func visitNext(instr *ssa.Next, infer *TypeInfer, ctx *Context) {
-	ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index}
+	ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index, 0}
 	ctx.F.tuples[ctx.F.locals[instr]] = make(Tuples, 3) // { ok, k, v}
 	infer.Logger.Print(ctx.F.Sprintf(SkipSymbol+"%s (ok, k, v) = next", ctx.F.locals[instr]))
 }
@@ -997,7 +1019,7 @@ func visitPhi(instr *ssa.Phi, infer *TypeInfer, ctx *Context) {
 }
 
 func visitRecv(instr *ssa.UnOp, infer *TypeInfer, ctx *Context) {
-	ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index} // received value
+	ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index, 0} // received value
 	ch, ok := ctx.F.locals[instr.X]
 	if !ok { // Channel does not exist
 		infer.Logger.Fatalf("recv: %s: %+v", ErrUnknownValue, instr.X)
@@ -1005,19 +1027,19 @@ func visitRecv(instr *ssa.UnOp, infer *TypeInfer, ctx *Context) {
 	}
 	// Receive test.
 	if instr.CommaOk {
-		ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index}
+		ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index, 0}
 		ctx.F.commaok[ctx.F.locals[instr]] = &CommaOk{Instr: instr, Result: ctx.F.locals[instr]}
 		ctx.F.tuples[ctx.F.locals[instr]] = make(Tuples, 2) // { recvVal, recvOk }
 	}
 	pos := infer.SSA.DecodePos(ch.(*Value).Pos())
 	infer.Logger.Print(ctx.F.Sprintf(RecvSymbol+"%s = %s @ %s", ctx.F.locals[instr], ch, fmtPos(pos)))
 	if paramName, ok := ctx.F.revlookup[ch.String()]; ok {
-		ctx.F.FuncDef.AddStmts(&migo.RecvStatement{Chan: paramName})
+		ctx.F.FuncDef.AddStmts(&migo.RecvStatement{Chan: paramName, LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]})
 	} else {
 		if _, ok := instr.X.(*ssa.Phi); ok { // if it's a phi, selection is made in the parameter
-			ctx.F.FuncDef.AddStmts(&migo.RecvStatement{Chan: instr.X.Name()})
+			ctx.F.FuncDef.AddStmts(&migo.RecvStatement{Chan: instr.X.Name(), LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]})
 		} else {
-			ctx.F.FuncDef.AddStmts(&migo.RecvStatement{Chan: ch.(*Value).Name()})
+			ctx.F.FuncDef.AddStmts(&migo.RecvStatement{Chan: ch.(*Value).Name(), LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]})
 		}
 	}
 
@@ -1055,7 +1077,7 @@ func visitRunDefers(instr *ssa.RunDefers, infer *TypeInfer, ctx *Context) {
 			callee := ctx.F.prepareCallFn(common, common.StaticCallee(), nil)
 			visitFunc(callee.Fn, infer, callee)
 			if callee.HasBody() {
-				callStmt := &migo.CallStatement{Name: callee.Fn.String(), Params: []*migo.Parameter{}}
+				callStmt := &migo.CallStatement{Name: callee.Fn.String(), Params: []*migo.Parameter{}, LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]}
 				for _, c := range common.Args {
 					if _, ok := c.Type().(*types.Chan); ok {
 						infer.Logger.Fatalf("channel in defer: %s", ErrUnimplemented)
@@ -1068,7 +1090,7 @@ func visitRunDefers(instr *ssa.RunDefers, infer *TypeInfer, ctx *Context) {
 }
 
 func visitSelect(instr *ssa.Select, infer *TypeInfer, ctx *Context) {
-	ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index}
+	ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index, 0}
 	ctx.F.selects[ctx.F.locals[instr]] = &Select{
 		Instr:    instr,
 		MigoStmt: &migo.SelectStatement{Cases: [][]migo.Statement{}},
@@ -1084,28 +1106,28 @@ func visitSelect(instr *ssa.Select, infer *TypeInfer, ctx *Context) {
 		switch sel.Dir {
 		case types.SendOnly:
 			if paramName, ok := ctx.F.revlookup[ch.String()]; ok {
-				stmt = &migo.SendStatement{Chan: paramName}
+				stmt = &migo.SendStatement{Chan: paramName, LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]}
 			} else {
 				if _, ok := sel.Chan.(*ssa.Phi); ok { // if it's a phi, selection is made in the parameter
-					stmt = &migo.SendStatement{Chan: sel.Chan.Name()}
+					stmt = &migo.SendStatement{Chan: sel.Chan.Name(), LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]}
 				} else {
-					stmt = &migo.SendStatement{Chan: ch.(*Value).Name()}
+					stmt = &migo.SendStatement{Chan: ch.(*Value).Name(), LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]}
 				}
 			}
 		case types.RecvOnly:
 			if paramName, ok := ctx.F.revlookup[ch.String()]; ok {
-				stmt = &migo.RecvStatement{Chan: paramName}
+				stmt = &migo.RecvStatement{Chan: paramName, LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]}
 			} else {
 				if _, ok := ch.(*Value); ok {
 					if _, ok := sel.Chan.(*ssa.Phi); ok { // if it's a phi, selection is made in the parameter
-						stmt = &migo.RecvStatement{Chan: sel.Chan.Name()}
+						stmt = &migo.RecvStatement{Chan: sel.Chan.Name(), LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]}
 					} else {
-						stmt = &migo.RecvStatement{Chan: ch.(*Value).Name()}
+						stmt = &migo.RecvStatement{Chan: ch.(*Value).Name(), LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]}
 					}
 				} else {
 					// Warning: receiving from external channels (e.g. cgo)
 					// will cause problems
-					stmt = &migo.TauStatement{}
+					stmt = &migo.TauStatement{LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]}
 				}
 			}
 		}
@@ -1113,7 +1135,7 @@ func visitSelect(instr *ssa.Select, infer *TypeInfer, ctx *Context) {
 	}
 	// Default case exists.
 	if !instr.Blocking {
-		selStmt.Cases = append(selStmt.Cases, []migo.Statement{&migo.TauStatement{}})
+		selStmt.Cases = append(selStmt.Cases, []migo.Statement{&migo.TauStatement{LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]}})
 	}
 	ctx.F.tuples[ctx.F.locals[instr]] = make(Tuples, 2+len(selStmt.Cases)) // index + recvok + cases
 	ctx.F.FuncDef.AddStmts(selStmt)
@@ -1128,12 +1150,12 @@ func visitSend(instr *ssa.Send, infer *TypeInfer, ctx *Context) {
 	pos := infer.SSA.DecodePos(ch.(*Value).Pos())
 	infer.Logger.Printf(ctx.F.Sprintf(SendSymbol+"%s @ %s", ch, fmtPos(pos)))
 	if paramName, ok := ctx.F.revlookup[ch.String()]; ok {
-		ctx.F.FuncDef.AddStmts(&migo.SendStatement{Chan: paramName})
+		ctx.F.FuncDef.AddStmts(&migo.SendStatement{Chan: paramName, LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]})
 	} else {
 		if _, ok := instr.Chan.(*ssa.Phi); ok {
-			ctx.F.FuncDef.AddStmts(&migo.SendStatement{Chan: instr.Chan.Name()})
+			ctx.F.FuncDef.AddStmts(&migo.SendStatement{Chan: instr.Chan.Name(), LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]})
 		} else {
-			ctx.F.FuncDef.AddStmts(&migo.SendStatement{Chan: ch.(*Value).Name()})
+			ctx.F.FuncDef.AddStmts(&migo.SendStatement{Chan: ch.(*Value).Name(), LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]})
 		}
 	}
 }
@@ -1147,7 +1169,7 @@ func visitSkip(instr ssa.Instruction, infer *TypeInfer, ctx *Context) {
 }
 
 func visitSlice(instr *ssa.Slice, infer *TypeInfer, ctx *Context) {
-	ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index}
+	ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index, 0}
 	if _, ok := ctx.F.locals[instr.X]; !ok {
 		infer.Logger.Fatalf("slice: %s: %+v", ErrUnknownValue, instr.X)
 		return
@@ -1222,7 +1244,7 @@ func visitStore(instr *ssa.Store, infer *TypeInfer, ctx *Context) {
 	}
 	if basic, ok := derefType(dstPtr.Type()).Underlying().(*types.Basic); ok && basic.Kind() == types.Byte {
 		infer.Logger.Print(ctx.F.Sprintf(SubSymbol+"store: %+v is a byte", dstPtr))
-		ctx.F.locals[dstPtr] = &Value{dstPtr, ctx.F.InstanceID(), ctx.L.Index}
+		ctx.F.locals[dstPtr] = &Value{dstPtr, ctx.F.InstanceID(), ctx.L.Index, 0}
 	}
 	// Locactx.L.
 	dstInst, ok := ctx.F.locals[dstPtr]
@@ -1263,7 +1285,7 @@ func visitTypeAssert(instr *ssa.TypeAssert, infer *TypeInfer, ctx *Context) {
 				return
 			}
 			if instr.CommaOk {
-				ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index}
+				ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index, 0}
 				ctx.F.commaok[ctx.F.locals[instr]] = &CommaOk{Instr: instr, Result: ctx.F.locals[instr]}
 				ctx.F.tuples[ctx.F.locals[instr]] = make(Tuples, 2)
 				infer.Logger.Print(ctx.F.Sprintf(SkipSymbol+"%s = typeassert iface %s commaok", ctx.F.locals[instr], inst))
@@ -1282,7 +1304,7 @@ func visitTypeAssert(instr *ssa.TypeAssert, infer *TypeInfer, ctx *Context) {
 		return
 	}
 	if instr.CommaOk {
-		ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index}
+		ctx.F.locals[instr] = &Value{instr, ctx.F.InstanceID(), ctx.L.Index, 0}
 		ctx.F.commaok[ctx.F.locals[instr]] = &CommaOk{Instr: instr, Result: ctx.F.locals[instr]}
 		ctx.F.tuples[ctx.F.locals[instr]] = make(Tuples, 2)
 		infer.Logger.Print(ctx.F.Sprintf(SkipSymbol+"%s = typeassert %s commaok", ctx.F.locals[instr], inst))

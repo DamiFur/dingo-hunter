@@ -49,6 +49,7 @@ func init() {
 }
 
 func Build(files []string) {
+
 	logFile, err := RootCmd.PersistentFlags().GetString("log")
 	if err != nil {
 		log.Fatal(err)

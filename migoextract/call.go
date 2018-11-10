@@ -6,6 +6,8 @@ package migoextract
 import (
 	"go/types"
 
+	"strings"
+
 	"github.com/nickng/migo"
 	"golang.org/x/tools/go/ssa"
 )
@@ -27,12 +29,12 @@ func (caller *Function) Call(call *ssa.Call, infer *TypeInfer, b *Block, l *Loop
 				return
 			}
 			if paramName, ok := caller.revlookup[ch.String()]; ok {
-				caller.FuncDef.AddStmts(&migo.CloseStatement{Chan: paramName})
+				caller.FuncDef.AddStmts(&migo.CloseStatement{Chan: paramName, LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(call.Pos()).String()), ":")[1]})
 			} else {
 				if _, ok := common.Args[0].(*ssa.Phi); ok {
-					caller.FuncDef.AddStmts(&migo.CloseStatement{Chan: common.Args[0].Name()})
+					caller.FuncDef.AddStmts(&migo.CloseStatement{Chan: common.Args[0].Name(), LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(call.Pos()).String()), ":")[1]})
 				} else {
-					caller.FuncDef.AddStmts(&migo.CloseStatement{Chan: ch.(*Value).Name()})
+					caller.FuncDef.AddStmts(&migo.CloseStatement{Chan: ch.(*Value).Name(), LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(call.Pos()).String()), ":")[1]})
 				}
 			}
 			infer.Logger.Print(caller.Sprintf("close %s", common.Args[0]))
@@ -47,7 +49,7 @@ func (caller *Function) Call(call *ssa.Call, infer *TypeInfer, b *Block, l *Loop
 				l.Bound, l.End = Static, len
 				return
 			}
-			caller.locals[call] = &Value{call, caller.InstanceID(), l.Index}
+			caller.locals[call] = &Value{call, caller.InstanceID(), l.Index, 0}
 			infer.Logger.Printf(caller.Sprintf("  builtin.%s", common.String()))
 		default:
 			infer.Logger.Printf(caller.Sprintf("  builtin.%s", common.String()))
@@ -92,7 +94,9 @@ func (caller *Function) Call(call *ssa.Call, infer *TypeInfer, b *Block, l *Loop
 func (caller *Function) Go(instr *ssa.Go, infer *TypeInfer) {
 	common := instr.Common()
 	callee := caller.prepareCallFn(common, common.StaticCallee(), nil)
-	spawnStmt := &migo.SpawnStatement{Name: callee.Fn.String(), Params: []*migo.Parameter{}}
+	// TODO: Aca tenés un ejemplo de cómo pasa de TypeInfer a Stmt. En el type infer tenés el número de linea y lo tenés que meter en el stms para que después lo imprima en el archivo MIGO
+	// 	fmt.Println("Estoy en visit Go: ", strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1])
+	spawnStmt := &migo.SpawnStatement{Name: callee.Fn.String(), Params: []*migo.Parameter{}, LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]}
 	for i, c := range common.Args {
 		if _, ok := c.Type().(*types.Chan); ok {
 			ch := getChan(c, infer)
@@ -187,7 +191,7 @@ func (caller *Function) storeRetvals(infer *TypeInfer, retval ssa.Value, callee 
 			infer.Logger.Fatalf("return[1]: %s: not an instance %+v", ErrUnknownValue, retval)
 		}
 	default:
-		caller.locals[retval] = &Value{retval, caller.InstanceID(), int64(0)}
+		caller.locals[retval] = &Value{retval, caller.InstanceID(), int64(0), 0}
 		if callee.Fn.Signature.Results().Len() == 1 {
 			caller.locals[retval] = callee.retvals[len(callee.retvals)-1]
 			if a, ok := callee.arrays[caller.locals[retval]]; ok {
@@ -303,7 +307,7 @@ func (caller *Function) call(common *ssa.CallCommon, fn *ssa.Function, rcvr ssa.
 	}
 	visitFunc(callee.Fn, infer, callee)
 	if callee.HasBody() {
-		callStmt := &migo.CallStatement{Name: callee.Fn.String(), Params: []*migo.Parameter{}}
+		callStmt := &migo.CallStatement{Name: callee.Fn.String(), Params: []*migo.Parameter{}, LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(common.Pos()).String()), ":")[1]}
 		for i, c := range common.Args {
 			if _, ok := c.Type().(*types.Chan); ok {
 				ch := getChan(c, infer)

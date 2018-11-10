@@ -24,6 +24,7 @@ type Value struct {
 	ssa.Value       // Storing the ssa.Value this instance is for.
 	instID    int   // Instance number (default: 0).
 	loopIdx   int64 // Loop index associated with var (default: 0).
+	LineFound int   // Line of the original code where the value was extracted. Default 0
 }
 
 // Instance returns the instance identifier pair.

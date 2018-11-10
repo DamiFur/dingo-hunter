@@ -18,15 +18,15 @@ func phiSelectEdge(instr *ssa.Phi, infer *TypeInfer, ctx *Context) (edge int) {
 					e, edge = ctx.F.locals[instr.Edges[i]], pred.Index
 					infer.Logger.Printf(ctx.F.Sprintf(PhiSymbol+"%s/%s = %s, selected const from block %d", instr.Name(), e, instr.String(), edge))
 				case *ssa.Function:
-					ctx.F.locals[instr.Edges[i]] = &Value{instr.Edges[i], ctx.F.InstanceID(), ctx.L.Index}
+					ctx.F.locals[instr.Edges[i]] = &Value{instr.Edges[i], ctx.F.InstanceID(), ctx.L.Index, 0}
 					e, edge = ctx.F.locals[instr.Edges[i]], pred.Index
 					infer.Logger.Printf(ctx.F.Sprintf(PhiSymbol+"%s/%s = %s, selected function from block %d", instr.Name(), e, instr.String(), edge))
 				case *ssa.Call:
-					ctx.F.locals[instr.Edges[i]] = &Value{instr.Edges[i], ctx.F.InstanceID(), ctx.L.Index}
+					ctx.F.locals[instr.Edges[i]] = &Value{instr.Edges[i], ctx.F.InstanceID(), ctx.L.Index, 0}
 					e, edge = ctx.F.locals[instr.Edges[i]], pred.Index
 					infer.Logger.Printf(ctx.F.Sprintf(PhiSymbol+"%s/%s = %s, selected call from block %d", instr.Name(), e, instr.String(), edge))
 				case *ssa.UnOp:
-					ctx.F.locals[instr.Edges[i]] = &Value{instr.Edges[i], ctx.F.InstanceID(), ctx.L.Index}
+					ctx.F.locals[instr.Edges[i]] = &Value{instr.Edges[i], ctx.F.InstanceID(), ctx.L.Index, 0}
 					e, edge = ctx.F.locals[instr.Edges[i]], pred.Index
 					infer.Logger.Printf(ctx.F.Sprintf(PhiSymbol+"%s/%s = %s, selected UnOp from block %d", instr.Name(), e, instr.String(), edge))
 				default:
