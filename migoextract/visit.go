@@ -629,7 +629,7 @@ func visitIf(instr *ssa.If, infer *TypeInfer, ctx *Context) {
 	if ctx.L.State == Body && ctx.L.LoopBlock == ctx.B.Index {
 		// Infinite loop.
 		infer.Logger.Printf(ctx.F.Sprintf(LoopSymbol + " infinite loop"))
-		stmt := &migo.CallStatement{Name: fmt.Sprintf("%s#%d", ctx.F.Fn.String(), ctx.B.Index), LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]}
+		stmt := &migo.CallStatement{Name: fmt.Sprintf("%s#%d", ctx.F.Fn.String(), ctx.B.Index), LineNum: "0"}
 		for _, p := range ctx.F.FuncDef.Params {
 			stmt.AddParams(&migo.Parameter{Caller: p.Callee, Callee: p.Callee})
 		}
@@ -1106,28 +1106,28 @@ func visitSelect(instr *ssa.Select, infer *TypeInfer, ctx *Context) {
 		switch sel.Dir {
 		case types.SendOnly:
 			if paramName, ok := ctx.F.revlookup[ch.String()]; ok {
-				stmt = &migo.SendStatement{Chan: paramName, LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]}
+				stmt = &migo.SendStatement{Chan: paramName, LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(sel.Pos).String()), ":")[1]}
 			} else {
 				if _, ok := sel.Chan.(*ssa.Phi); ok { // if it's a phi, selection is made in the parameter
-					stmt = &migo.SendStatement{Chan: sel.Chan.Name(), LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]}
+					stmt = &migo.SendStatement{Chan: sel.Chan.Name(), LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(sel.Pos).String()), ":")[1]}
 				} else {
-					stmt = &migo.SendStatement{Chan: ch.(*Value).Name(), LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]}
+					stmt = &migo.SendStatement{Chan: ch.(*Value).Name(), LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(sel.Pos).String()), ":")[1]}
 				}
 			}
 		case types.RecvOnly:
 			if paramName, ok := ctx.F.revlookup[ch.String()]; ok {
-				stmt = &migo.RecvStatement{Chan: paramName, LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]}
+				stmt = &migo.RecvStatement{Chan: paramName, LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(sel.Pos).String()), ":")[1]}
 			} else {
 				if _, ok := ch.(*Value); ok {
 					if _, ok := sel.Chan.(*ssa.Phi); ok { // if it's a phi, selection is made in the parameter
-						stmt = &migo.RecvStatement{Chan: sel.Chan.Name(), LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]}
+						stmt = &migo.RecvStatement{Chan: sel.Chan.Name(), LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(sel.Pos).String()), ":")[1]}
 					} else {
-						stmt = &migo.RecvStatement{Chan: ch.(*Value).Name(), LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]}
+						stmt = &migo.RecvStatement{Chan: ch.(*Value).Name(), LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(sel.Pos).String()), ":")[1]}
 					}
 				} else {
 					// Warning: receiving from external channels (e.g. cgo)
 					// will cause problems
-					stmt = &migo.TauStatement{LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(instr.Pos()).String()), ":")[1]}
+					stmt = &migo.TauStatement{LineNum: strings.Split(fmtPos(infer.SSA.FSet.Position(sel.Pos).String()), ":")[1]}
 				}
 			}
 		}
