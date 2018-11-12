@@ -9,7 +9,7 @@ import (
 	"go/types"
 	"log"
 
-	"github.com/nickng/migo"
+	"github.com/damifur/migo"
 	"golang.org/x/tools/go/ssa"
 )
 

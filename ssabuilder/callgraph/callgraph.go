@@ -1,6 +1,6 @@
 // Package callgraph represents function call graph.
 //
-package callgraph // import "github.com/nickng/dingo-hunter/ssabuilder/callgraph"
+package callgraph // import "github.com/damifur/dingo-hunter/ssabuilder/callgraph"
 
 import (
 	"golang.org/x/tools/go/ssa"

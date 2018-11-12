@@ -5,8 +5,8 @@ import (
 	"go/types"
 	"os"
 
-	"github.com/nickng/dingo-hunter/cfsmextract/sesstype"
-	"github.com/nickng/dingo-hunter/cfsmextract/utils"
+	"github.com/damifur/dingo-hunter/cfsmextract/sesstype"
+	"github.com/damifur/dingo-hunter/cfsmextract/utils"
 	"golang.org/x/tools/go/ssa"
 )
 

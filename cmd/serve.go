@@ -19,7 +19,7 @@ import (
 	"log"
 	"path"
 
-	"github.com/nickng/dingo-hunter/webservice"
+	"github.com/damifur/dingo-hunter/webservice"
 	"github.com/spf13/cobra"
 )
 
@@ -37,7 +37,7 @@ Each example is a Go command (i.e. package main) in a directory, under the examp
 	},
 }
 
-const basePkg = "github.com/nickng/dingo-hunter"
+const basePkg = "github.com/damifur/dingo-hunter"
 
 var (
 	addr string // Listen interface.

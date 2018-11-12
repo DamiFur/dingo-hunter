@@ -4,7 +4,7 @@ import (
 	"io"
 	"sort"
 
-	"github.com/nickng/dingo-hunter/ssabuilder/callgraph"
+	"github.com/damifur/dingo-hunter/ssabuilder/callgraph"
 	"golang.org/x/tools/go/ssa"
 )
 

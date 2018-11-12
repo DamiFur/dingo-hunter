@@ -1,6 +1,6 @@
 // Package logwriter wraps a io.Writer for dingo-hunter logging.
 //
-package logwriter // "github.com/nickng/dingo-hunter/logwriter"
+package logwriter // "github.com/damifur/dingo-hunter/logwriter"
 
 import (
 	"bufio"

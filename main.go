@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/nickng/dingo-hunter/cmd"
+	"github.com/damifur/dingo-hunter/cmd"
 )
 
 func main() {

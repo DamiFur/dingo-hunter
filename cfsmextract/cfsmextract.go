@@ -11,9 +11,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/nickng/dingo-hunter/cfsmextract/sesstype"
-	"github.com/nickng/dingo-hunter/cfsmextract/utils"
-	"github.com/nickng/dingo-hunter/ssabuilder"
+	"github.com/damifur/dingo-hunter/cfsmextract/sesstype"
+	"github.com/damifur/dingo-hunter/cfsmextract/utils"
+	"github.com/damifur/dingo-hunter/ssabuilder"
 	"golang.org/x/tools/go/ssa"
 )
 

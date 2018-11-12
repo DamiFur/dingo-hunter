@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/nickng/migo"
+	"github.com/damifur/migo"
 	"golang.org/x/tools/go/ssa"
 )
 
@@ -122,8 +122,6 @@ func visitInstr(instr ssa.Instruction, infer *TypeInfer, ctx *Context) {
 	case *ssa.IndexAddr:
 		visitIndexAddr(instr, infer, ctx)
 	case *ssa.Jump:
-		fmt.Println("POS DEL JUUUUUUUMPPPPPPP")
-		fmt.Println(instr.Parent())
 		visitJump(instr, infer, ctx)
 	case *ssa.Lookup:
 		visitLookup(instr, infer, ctx)

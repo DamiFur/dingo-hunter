@@ -1,6 +1,6 @@
 // Package ssabuilder provides a wrapper for building SSA IR from Go source code.
 //
-package ssabuilder // import "github.com/nickng/dingo-hunter/ssabuilder"
+package ssabuilder // import "github.com/damifur/dingo-hunter/ssabuilder"
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ import (
 	"golang.org/x/tools/go/ssa"
 	"golang.org/x/tools/go/ssa/ssautil"
 
-	"github.com/nickng/dingo-hunter/ssabuilder/callgraph"
+	"github.com/damifur/dingo-hunter/ssabuilder/callgraph"
 )
 
 // A Mode value is a flag indicating how the source code are supplied.

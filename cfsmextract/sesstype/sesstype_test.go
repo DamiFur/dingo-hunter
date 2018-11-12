@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/nickng/cfsm"
-	"github.com/nickng/dingo-hunter/cfsmextract/utils"
+	"github.com/damifur/dingo-hunter/cfsmextract/utils"
 	"golang.org/x/tools/go/ssa"
 )
 

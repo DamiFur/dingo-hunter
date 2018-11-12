@@ -6,8 +6,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/nickng/dingo-hunter/migoextract"
-	"github.com/nickng/dingo-hunter/ssabuilder"
+	"github.com/damifur/dingo-hunter/migoextract"
+	"github.com/damifur/dingo-hunter/ssabuilder"
 )
 
 func migoHandler(w http.ResponseWriter, req *http.Request) {

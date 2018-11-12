@@ -18,8 +18,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/nickng/dingo-hunter/logwriter"
-	"github.com/nickng/dingo-hunter/ssabuilder"
+	"github.com/damifur/dingo-hunter/logwriter"
+	"github.com/damifur/dingo-hunter/ssabuilder"
 	"github.com/spf13/cobra"
 )
 

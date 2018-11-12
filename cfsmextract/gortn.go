@@ -1,7 +1,7 @@
 package cfsmextract
 
 import (
-	"github.com/nickng/dingo-hunter/cfsmextract/sesstype"
+	"github.com/damifur/dingo-hunter/cfsmextract/sesstype"
 	"golang.org/x/tools/go/ssa"
 )
 

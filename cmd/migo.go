@@ -20,9 +20,9 @@ import (
 
 	"fmt"
 
-	"github.com/nickng/dingo-hunter/logwriter"
-	"github.com/nickng/dingo-hunter/migoextract"
-	"github.com/nickng/dingo-hunter/ssabuilder"
+	"github.com/damifur/dingo-hunter/logwriter"
+	"github.com/damifur/dingo-hunter/migoextract"
+	"github.com/damifur/dingo-hunter/ssabuilder"
 	"github.com/spf13/cobra"
 )
 

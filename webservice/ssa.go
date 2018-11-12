@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/nickng/dingo-hunter/ssabuilder"
+	"github.com/damifur/dingo-hunter/ssabuilder"
 )
 
 func ssaHandler(w http.ResponseWriter, req *http.Request) {

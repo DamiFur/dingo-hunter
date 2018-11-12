@@ -1,6 +1,6 @@
 // Package migoextract provides session type inference from Go code.
 //
-package migoextract // import "github.com/nickng/dingo-hunter/migoextract"
+package migoextract // import "github.com/damifur/dingo-hunter/migoextract"
 
 import (
 	"go/types"
@@ -8,8 +8,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/nickng/dingo-hunter/ssabuilder"
-	"github.com/nickng/migo"
+	"github.com/damifur/dingo-hunter/ssabuilder"
+	"github.com/damifur/migo"
 	"golang.org/x/tools/go/ssa"
 )
 

@@ -7,9 +7,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/nickng/dingo-hunter/cfsmextract"
-	"github.com/nickng/dingo-hunter/cfsmextract/sesstype"
-	"github.com/nickng/dingo-hunter/ssabuilder"
+	"github.com/damifur/dingo-hunter/cfsmextract"
+	"github.com/damifur/dingo-hunter/cfsmextract/sesstype"
+	"github.com/damifur/dingo-hunter/ssabuilder"
 )
 
 func cfsmHandler(w http.ResponseWriter, req *http.Request) {
