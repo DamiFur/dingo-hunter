@@ -13,9 +13,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/fatih/color"
 	"github.com/damifur/dingo-hunter/logwriter"
 	"github.com/damifur/dingo-hunter/ssabuilder"
+	"github.com/fatih/color"
 	"golang.org/x/tools/go/ssa"
 )
 

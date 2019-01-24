@@ -5,8 +5,8 @@ import (
 	"go/types"
 	"testing"
 
-	"github.com/nickng/cfsm"
 	"github.com/damifur/dingo-hunter/cfsmextract/utils"
+	"github.com/nickng/cfsm"
 	"golang.org/x/tools/go/ssa"
 )
 

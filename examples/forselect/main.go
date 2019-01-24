@@ -25,13 +25,14 @@ func sel2(ch1, ch2 chan int, done chan struct{}) {
 		case ch1 <- 2:
 			fmt.Println("sel2: send")
 			done <- struct{}{}
+			done <- struct{}{}
 			return
 		}
 	}
 }
 
 func main() {
-	done := make(chan struct{})
+	done := make(chan struct{}, 0)
 	a := make(chan int)
 	b := make(chan int)
 	go sel1(a, b, done)

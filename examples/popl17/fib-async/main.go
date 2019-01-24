@@ -18,5 +18,5 @@ func fib(n int, ch chan<- int) {
 	ch1 := make(chan int, 2)
 	go fib(n-1, ch1)
 	go fib(n-2, ch1)
-	ch <- <-ch1 + <-ch1
+	ch <- <-ch1 + <-ch1 + <-ch1
 }

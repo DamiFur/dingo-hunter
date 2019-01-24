@@ -45,7 +45,7 @@ func visitFunc(fn *ssa.Function, infer *TypeInfer, f *Function) {
 func visitBasicBlock(blk *ssa.BasicBlock, infer *TypeInfer, f *Function, bPrev *Block, l *Loop) {
 	loopStateTransition(blk, infer, f, &l)
 	if l.Bound == Static && l.HasNext() {
-		fmt.Println("This has next: ", l)
+		//fmt.Println("This has next: ", l)
 		infer.Logger.Printf(f.Sprintf(BlockSymbol+"%s %d (loop %s=%d)", fmtBlock("block"), blk.Index, l.CondVar.Name(), l.Index))
 		// Loop and can continue, so don't mark as visited yet
 	} else {
@@ -53,10 +53,6 @@ func visitBasicBlock(blk *ssa.BasicBlock, infer *TypeInfer, f *Function, bPrev *
 			infer.Logger.Printf(f.Sprintf(BlockSymbol+"%s %d (visited)", fmtBlock("block"), blk.Index))
 			f.Visited[blk]++
 			for i := 0; i < len(f.FuncDef.Params); i++ {
-				fmt.Println("Parametros de la funcion")
-				fmt.Println(f.FuncDef.Params[i])
-				fmt.Println("nombre del parametro")
-				fmt.Println(f.FuncDef.Params[i].Caller.Name())
 				for k, ea := range f.extraargs {
 					if phi, ok := ea.(*ssa.Phi); ok {
 						if bPrev.Index < len(phi.Edges) {
@@ -84,10 +80,6 @@ func visitBasicBlock(blk *ssa.BasicBlock, infer *TypeInfer, f *Function, bPrev *
 	for _, instr := range blk.Instrs {
 		visitInstr(instr, infer, ctx)
 	}
-	//fmt.Println("Esto es lo que queda después de un bloque:")
-	//for key, _ := range ctx.F.locals {
-	//	fmt.Println(ctx.F.locals[key].String())
-	//}
 
 }
 

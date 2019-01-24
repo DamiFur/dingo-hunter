@@ -68,8 +68,6 @@ var (
 // NewConfig creates a new default build configuration.
 func NewConfig(files []string) (*Config, error) {
 
-	fmt.Println("Entre al seteo de la configuracion!!!!")
-
 	if len(files) == 0 {
 		return nil, fmt.Errorf("no files specified or analysis")
 	}
@@ -97,7 +95,6 @@ func NewConfigFromString(s string) (*Config, error) {
 
 // Build constructs the SSA IR using given config, and sets up pointer analysis.
 func (conf *Config) Build() (*SSAInfo, error) {
-	fmt.Println("Estoy en el Build de la configuracion")
 	var lconf = loader.Config{Build: &build.Default}
 	buildLog := log.New(conf.BuildLog, "ssabuild: ", conf.LogFlags)
 

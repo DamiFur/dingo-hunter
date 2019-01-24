@@ -18,8 +18,6 @@ import (
 	"log"
 	"os"
 
-	"fmt"
-
 	"github.com/damifur/dingo-hunter/logwriter"
 	"github.com/damifur/dingo-hunter/migoextract"
 	"github.com/damifur/dingo-hunter/ssabuilder"
@@ -51,8 +49,6 @@ func init() {
 
 func extractMigo(files []string) {
 
-	fmt.Println("Entre al extractMIGO!!!!!!!!!!")
-
 	logFile, err := RootCmd.PersistentFlags().GetString("log")
 	if err != nil {
 		log.Fatal(err)
@@ -77,13 +73,16 @@ func extractMigo(files []string) {
 	}
 	conf.BuildLog = l.Writer
 	ssainfo, err := conf.Build()
-	f := ssainfo.CallGraph().Func
-	children := ssainfo.CallGraph().Children[0].Func
+	//f := ssainfo.CallGraph().Func
+	//fmt.Println("FUNCTIOOOOOOOONNN")
+	//fmt.Println(ssainfo.CallGraph())
+	//fmt.Println("--------------------")
+	//children := ssainfo.CallGraph().Children[0].Func
 	// ACA ESTA EL PATH DE LA FUNCION CON LA LINEA DONDE ARRANCA LA FUNC MAIN
-	fmt.Println(f.Blocks[0].Instrs)
-	fmt.Println("-----------------------------")
-	fmt.Println(f.Prog.Fset.Position(f.Pos()))
-	fmt.Println(children.Prog.Fset.Position(children.Pos())) //f.Prog.Fset.File(f.Pos()))
+	//fmt.Println(f.Blocks[0].Instrs)
+	//fmt.Println("-----------------------------")
+	//fmt.Println(f.Prog.Fset.Position(f.Pos()))
+	//fmt.Println(children.Prog.Fset.Position(children.Pos())) //f.Prog.Fset.File(f.Pos()))
 	if err != nil {
 		log.Fatal(err)
 	}

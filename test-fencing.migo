@@ -1,0 +1,10 @@
+def main.main():
+    let t0 = newchan main.main.t0_0_0, 0 @14;
+    spawn main.createProducerConsumersAndNotify(t0) @16;
+    call main.main#1(t0) @0;
+def main.main#1(t0):
+    recv t0 @20;
+    call main.main#1(t0, t0) @0;
+def main.createProducerConsumersAndNotify(ch):
+    let t0 = newchan main.createProducerConsumersAndNotify.t0_0_0, 0 @26;
+    send ch @30;
